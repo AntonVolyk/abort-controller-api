@@ -2,10 +2,10 @@ const express = require('express')
 const app = express()
 const port = 3000
 
-app.use(express.static('./'));
+app.use(express.static('./public'));
 
 app.get('/video', (req, res) => {
-    res.download('./sintel.mp4');
+    res.download('./public/sintel.mp4');
   })
 
 app.listen(port, () => {
