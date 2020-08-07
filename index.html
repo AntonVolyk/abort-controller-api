@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="utf-8">
+    <title>Abort API example</title>
+    <style>
+        .wrapper {
+            width: 70%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        video {
+            max-width: 100%;
+        }
+
+        .wrapper > div {
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <body>
+        <div class="wrapper">
+            <h1>Offline video player</h1>
+            <div class="controls">
+                <button class="download">Download video</button>  
+                <button class="abort hidden">Cancel download</button>
+                <p class="reports"></p>     
+            </div>
+        </div>
+        <div class="video hidden">
+            <p>Sintel &copy; Blender Foundation | <a href="http://www.sintel.org/">www.sintel.org</a>.</p>
+        </div>
+        <script>
+            const url='http://localhost:3000/video';
+            const videoWrapper = document.querySelector('.video');
+            const downloadButton = document.querySelector('.download');
+            const abortButton = document.querySelector('.abort');
+            const reports = document.querySelector('.reports');
+
+            let controller;
+            let progressAnim;
+            let animCount = 0;
+
+            downloadButton.addEventListener('click', fetchVideo);
+            abortButton.addEventListener('click', abortDownloading);
+
+            function fetchVideo() {
+                controller = new AbortController();
+                const signal = controller.signal;
+                downloadButton.classList.add('hidden');
+                abortButton.classList.remove('hidden');
+                reports.textContent = 'Video is awaiting for downloading...';
+                fetch(url, {signal}).then((response) => {
+                    if (response.status === 200) {
+                        runAnimation();
+                        setTimeout(() => console.log('Body is used: ', response.bodyUsed), 0);
+                        return response.blob();
+                    } else {
+                        throw new Error('Failed to fetch');
+                        
+                    }
+                }).then((blob) => {
+                    const video = document.createElement('video');
+                    video.setAttribute('controls', '');
+                    video.src = URL.createObjectURL(blob);
+                    videoWrapper.appendChild(video);
+                    videoWrapper.classList.remove('hidden');
+                    abortButton.classList.add('hidden');
+                    downloadButton.classList.add('hidden');
+                    reports.textContent = 'Video is ready to play';
+                }).catch((err) => {
+                    abortButton.classList.add('hidden');
+                    downloadButton.classList.remove('hidden');
+                    reports.textContent = 'Download error: ' + err.message; 
+                }).finally(() => {
+                    clearInterval(progressAnim);
+                    animCount = 0;
+                });
+            }
+
+            function abortDownloading() {
+                controller.abort();
+                console.log('Dowload aborted');
+                downloadButton.classList.remove('hidden');
+            }
+
+            function runAnimation() {
+                progressAnim = setInterval(() => {
+                    switch(animCount++ & 3) {
+                        case 0: reports.textContent = 'Download occuring; waiting for video to be constructed'; break;
+                        case 1: reports.textContent = 'Download occuring; waiting for video to be constructed.'; break;
+                        case 2: reports.textContent = 'Download occuring; waiting for video to be constructed..'; break;
+                        case 3: reports.textContent = 'Download occuring; waiting for video to be constructed...'; break;
+                    }
+                }, 300);
+            }
+        </script>
+    </body>
+
+</html>
